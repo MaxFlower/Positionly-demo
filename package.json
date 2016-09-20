@@ -1,0 +1,19 @@
+{
+  "name": "event-demo",
+  "version": "1.0.0",
+  "description": "Example project.",
+  "main": "index.html",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "keywords": [
+    "nodejs",
+    "event"
+  ],
+  "author": "Max Tsvetkov",
+  "license": "ISC",
+  "dependencies": {
+    "websocket": "^1.0.23"
+  }
+}
