@@ -1,12 +1,13 @@
 $(function () {
     "use strict";
 
-    init();
-
     // for better performance - to avoid searching in DOM
     var content = $('#content');
     var input = $('#input');
     var status = $('#status');
+    var sendButton = $('#send');
+    var listButton = $('#list');
+    var captureButton = $('#capture');
 
     // my color assigned by the server
     var myColor = false;
@@ -31,7 +32,7 @@ $(function () {
     connection.onopen = function () {
         // first we want users to enter their names
         input.removeAttr('disabled');
-        status.text('Choose name:');
+        status.text('Choose name and join to server:');
     };
 
     connection.onerror = function (error) {
@@ -75,25 +76,41 @@ $(function () {
     };
 
     /**
+     * Send mesage when user presses button
+     */
+    function sendCommand() {
+        var msg = input.val();
+        if (!msg) {
+            return;
+        }
+        // send the message as an ordinary text
+        connection.send(msg);
+        input.val('');
+        // disable the input field to make the user wait until server
+        // sends back response
+        input.attr('disabled', 'disabled');
+        // we know that the first message sent from a user their name
+        if (myName === false) {
+            myName = msg;
+        }
+    };
+
+    function sendGetList() {
+
+    };
+
+    function sendCapture() {
+
+    };
+
+    sendButton.on('click', sendCommand);
+
+    /**
      * Send mesage when user presses Enter key
      */
     input.keydown(function(e) {
         if (e.keyCode === 13) {
-            var msg = $(this).val();
-            if (!msg) {
-                return;
-            }
-            // send the message as an ordinary text
-            connection.send(msg);
-            $(this).val('');
-            // disable the input field to make the user wait until server
-            // sends back response
-            input.attr('disabled', 'disabled');
-
-            // we know that the first message sent from a user their name
-            if (myName === false) {
-                myName = msg;
-            }
+            sendCommand();
         }
     });
 
@@ -120,11 +137,21 @@ $(function () {
              + ': ' + message + '</p>');
     }
 
-    function init() {        
+    function addListeners() {        
         ["MOUSEDOWN", "MOUSEUP", "MOUSEOVER", "MOUSEOUT", "MOUSEMOVE", "MOUSEDRAG", "CLICK", 
         "DBLCLICK", "KEYDOWN", "KEYUP", "KEYPRESS", "DRAGDROP", "FOCUS", "BLUR", "SELECT", 
         "CHANGE"].forEach(function(ev) {            
             window.addEventListener(ev.toLowerCase(), function() {
+                console.log('event:', ev)
+            });
+        });
+    }
+
+    function removeListeners() {        
+        ["MOUSEDOWN", "MOUSEUP", "MOUSEOVER", "MOUSEOUT", "MOUSEMOVE", "MOUSEDRAG", "CLICK", 
+        "DBLCLICK", "KEYDOWN", "KEYUP", "KEYPRESS", "DRAGDROP", "FOCUS", "BLUR", "SELECT", 
+        "CHANGE"].forEach(function(ev) {            
+            window.removeEventListener(ev.toLowerCase(), function() {
                 console.log('event:', ev)
             });
         });
