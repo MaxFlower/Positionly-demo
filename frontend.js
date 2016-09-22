@@ -7,12 +7,17 @@ $(function () {
     var status = $('#status');
     var sendButton = $('#send');
     var listButton = $('#list');
+    var catchUser = $('#catch-user');
     var captureButton = $('#capture');
 
     // my color assigned by the server
     var myColor = false;
     // my name sent to the server
     var myName = false;
+
+    listButton.attr('disabled', 'disabled');
+    catchUser.attr('disabled', 'disabled');
+    captureButton.attr('disabled', 'disabled');
 
     // if user is running mozilla then use it's built-in WebSocket
     window.WebSocket = window.WebSocket || window.MozWebSocket;
@@ -53,66 +58,51 @@ $(function () {
             return;
         }
 
-        // NOTE: if you're not sure about the JSON structure
-        // check the server source code above
-        if (json.type === 'color') { // first response from the server with user's color
-            myColor = json.data;
-            status.text(myName + ': ').css('color', myColor);
-            input.removeAttr('disabled').focus();
-            // from now user can start sending messages
-        } else if (json.type === 'history') { // entire message history
-            // insert every single message to the chat window
-            for (var i=0; i < json.data.length; i++) {
-                addMessage(json.data[i].author, json.data[i].text,
-                           json.data[i].color, new Date(json.data[i].time));
-            }
-        } else if (json.type === 'message') { // it's a single message
-            input.removeAttr('disabled'); // let the user write another message
-            addMessage(json.data.author, json.data.text,
-                       json.data.color, new Date(json.data.time));
-        } else {
-            console.log('Hmm..., I\'ve never seen JSON like this: ', json);
-        }
-    };
+        switch (json.type) {
+            case 'spyon':
+                if (message.data.name === myName) {
+                   addListeners(); 
+                }
+                break;
+            case 'spyoff':
+                if (message.data.name === myName) {
+                   removeListeners(); 
+                }
+                break;
+            case 'msg':
+                input.removeAttr('disabled');
+                addMessage(json.data.author, json.data.text, new Date(json.data.time));
+                break;
+            case 'history':
+                for (var i=0; i < json.data.length; i++) {
+                    addMessage(json.data[i].author, json.data[i].text, new Date(json.data[i].time));
+                }
+                break;
+            default:
+                console.log('Wrong type for message: ', json);
+                break;
+        }        
+    };      
 
     /**
-     * Send mesage when user presses button
+     * Send message
      */
-    function sendCommand() {
-        var msg = input.val();
-        if (!msg) {
-            return;
-        }
-        // send the message as an ordinary text
-        connection.send(msg);
-        input.val('');
-        // disable the input field to make the user wait until server
-        // sends back response
-        input.attr('disabled', 'disabled');
-        // we know that the first message sent from a user their name
-        if (myName === false) {
-            myName = msg;
-        }
-    };
-
-    function sendGetList() {
-
-    };
-
-    function sendCapture() {
-
-    };
-
     sendButton.on('click', sendCommand);
+
+    /**
+     * Send message with get list of users command
+     */
+    listButton.on('click', sendGetList);
+
+    /**
+     * Send message with capture user action
+     */
+    captureButton.on('click', sendCapture);
 
     /**
      * Send mesage when user presses Enter key
      */
-    input.keydown(function(e) {
-        if (e.keyCode === 13) {
-            sendCommand();
-        }
-    });
+    input.on('keydown', keydownSend);
 
     /**
      * This method is optional. If the server wasn't able to respond to the
@@ -130,8 +120,8 @@ $(function () {
     /**
      * Add message to the chat window
      */
-    function addMessage(author, message, color, dt) {
-        content.prepend('<p><span style="color:' + color + '">' + author + '</span> @ ' +
+    function addMessage(author, message, dt) {
+        content.prepend('<p><span>' + author + '</span> @ ' +
              + (dt.getHours() < 10 ? '0' + dt.getHours() : dt.getHours()) + ':'
              + (dt.getMinutes() < 10 ? '0' + dt.getMinutes() : dt.getMinutes())
              + ': ' + message + '</p>');
@@ -156,4 +146,68 @@ $(function () {
             });
         });
     }
+
+    function keydownSend(e) {
+        if (e.keyCode === 13) {
+            sendCommand();
+        }    
+    }
+
+    function sendCommand() {
+        var msg = {};
+
+        if (myName === false) {
+            var msg = {
+                type: 'join'
+                data: {
+                    name: input.val()
+                }
+            }
+
+            myName = input.val();            
+            listButton.removeAttr('disabled');
+            catchUser.removeAttr('disabled'); 
+            captureButton.removeAttr('disabled');                       
+        } else {
+            var msg = {
+                type: 'msg'
+                data: {
+                    text: input.val()
+                }    
+            }
+        }
+        
+        // send the message as an ordinary text
+        connection.send(msg);
+        input.val('');
+        // disable the input field to make the user wait until server
+        // sends back response
+        input.attr('disabled', 'disabled');        
+    };  
+
+    function sendGetList() {
+        var msg = {};
+
+        var msg = {
+                type: 'list'
+                data: {
+                    name: myName
+            }
+        }
+
+        connection.send(msg);
+    };
+
+    function sendCapture() {
+        var msg = {};
+
+        var msg = {
+                type: 'catch'
+                data: {
+                    name: catchUser.val()
+            }
+        }
+
+        connection.send(msg);
+    };
 });
