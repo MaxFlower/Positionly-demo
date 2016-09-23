@@ -158,7 +158,7 @@ $(function () {
 
         if (myName === false) {
             var msg = {
-                type: 'join'
+                type: 'join',
                 data: {
                     name: input.val()
                 }
@@ -170,7 +170,7 @@ $(function () {
             captureButton.removeAttr('disabled');                       
         } else {
             var msg = {
-                type: 'msg'
+                type: 'msg',
                 data: {
                     text: input.val()
                 }    
@@ -189,10 +189,10 @@ $(function () {
         var msg = {};
 
         var msg = {
-                type: 'list'
-                data: {
-                    name: myName
-            }
+            type: 'list',
+            data: {
+                name: myName
+            }            
         }
 
         connection.send(msg);
@@ -202,12 +202,13 @@ $(function () {
         var msg = {};
 
         var msg = {
-                type: 'catch'
-                data: {
-                    name: catchUser.val()
-            }
+            type: 'catch',
+            data: {
+                name: catchUser.val()
+            }            
         }
 
         connection.send(msg);
+        catchUser.val('');
     };
 });
