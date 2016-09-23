@@ -19,6 +19,8 @@ var history = [ ];
 // list of currently connected clients (users)
 var clients = [ ];
 
+var clientNames = [];
+
 /**
  * Helper function for escaping input strings
  */
@@ -94,7 +96,8 @@ wsServer.on('request', function(request) {
                                 time: (new Date()).getTime()
                             }
                         }
-                    ));                 
+                    ));
+                    clientNames.push(data.name);                 
                     break;
                 case 'msg':
                     //we want to keep history of all sent messages
@@ -112,40 +115,51 @@ wsServer.on('request', function(request) {
                         clients[it].sendUTF(str);
                     }
                     break;
-                case 'list':
+                case 'list':                    
                     connection.sendUTF(JSON.stringify(
                         {
                             type:'msg', 
                             data: {
                                 author: 'Server',
-                                text: clients.toString(),
+                                text: 'List of users: ' + clientNames.join('; '),
                                 time: (new Date()).getTime()                                
                             }    
                         }
                     ));
                     break;
-                case 'catch':
+                case 'catch':                    
+                    for (var it = 0; it < clientNames.length; it++) {                        
+                        if (clientNames[it] === data.name) {                                                      
+                            clients[it].sendUTF(JSON.stringify(
+                                {
+                                    type:'spyon',
+                                    data: {
+                                        name: data.name
+                                    }
+                                }
+                            ));                            
+                        }                        
+                    }
+                    break;
+                case 'uncatch':                    
+                    for (var it = 0; it < clientNames.length; it++) {                        
+                        if (clientNames[it] === data.name) {                                                      
+                            clients[it].sendUTF(JSON.stringify(
+                                {
+                                    type:'spyoff',
+                                    data: {
+                                        name: data.name
+                                    }
+                                }
+                            ));                            
+                        }                        
+                    }
                     break;
                 default:
                     console.log((new Date()) + ' Wrong message type.');
                     break;
             }
-        }
-
-
-
-        // if (message.type === 'utf8') { // accept only text
-        //     if (userName === false) { // first message sent by user is their name
-        //         // remember user name
-        //         userName = htmlEntities(message.utf8Data);
-        //         // get random color and send it back to the user
-        //         userColor = colors.shift();
-        //         connection.sendUTF(JSON.stringify({ type:'color', data: userColor }));
-        //         console.log((new Date()) + ' User is known as: ' + userName
-        //                     + ' with ' + userColor + ' color.');
-
-        //     } else { // log and broadcast the message
-        
+        }        
     });
 
     // user disconnected
@@ -154,7 +168,8 @@ wsServer.on('request', function(request) {
             console.log((new Date()) + " Peer "
                 + connection.remoteAddress + " disconnected.");
             // remove user from the list of connected clients
-            clients.splice(index, 1);            
+            clients.splice(index, 1);
+            clientNames.splice(index, 1);            
         }
     });
 

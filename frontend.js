@@ -7,8 +7,10 @@ $(function () {
     var status = $('#status');
     var sendButton = $('#send');
     var listButton = $('#list');
-    var catchUser = $('#catch-user');
+    var catchUser = $('#catch');
     var captureButton = $('#capture');
+    var removeButton = $('#remove');
+
 
     // my color assigned by the server
     var myColor = false;
@@ -18,6 +20,7 @@ $(function () {
     listButton.attr('disabled', 'disabled');
     catchUser.attr('disabled', 'disabled');
     captureButton.attr('disabled', 'disabled');
+    removeButton.attr('disabled', 'disabled');
 
     // if user is running mozilla then use it's built-in WebSocket
     window.WebSocket = window.WebSocket || window.MozWebSocket;
@@ -58,14 +61,16 @@ $(function () {
             return;
         }
 
+        console.log(message.data);        
+
         switch (json.type) {
             case 'spyon':
-                if (message.data.name === myName) {
+                if (json.data.name === myName) {
                    addListeners(); 
                 }
                 break;
             case 'spyoff':
-                if (message.data.name === myName) {
+                if (json.data.name === myName) {
                    removeListeners(); 
                 }
                 break;
@@ -95,9 +100,14 @@ $(function () {
     listButton.on('click', sendGetList);
 
     /**
-     * Send message with capture user action
+     * Send message to add user's listeners
      */
     captureButton.on('click', sendCapture);
+
+    /**
+     * Send message to remove user's listeners
+     */
+    removeButton.on('click', sendRemove);
 
     /**
      * Send mesage when user presses Enter key
@@ -127,25 +137,25 @@ $(function () {
              + ': ' + message + '</p>');
     }
 
-    function addListeners() {        
+    function addListeners() {              
         ["MOUSEDOWN", "MOUSEUP", "MOUSEOVER", "MOUSEOUT", "MOUSEMOVE", "MOUSEDRAG", "CLICK", 
         "DBLCLICK", "KEYDOWN", "KEYUP", "KEYPRESS", "DRAGDROP", "FOCUS", "BLUR", "SELECT", 
         "CHANGE"].forEach(function(ev) {            
-            window.addEventListener(ev.toLowerCase(), function() {
-                console.log('event:', ev)
-            });
+            window.addEventListener(ev.toLowerCase(), listner);
         });
     }
 
-    function removeListeners() {        
+    function removeListeners() {              
         ["MOUSEDOWN", "MOUSEUP", "MOUSEOVER", "MOUSEOUT", "MOUSEMOVE", "MOUSEDRAG", "CLICK", 
         "DBLCLICK", "KEYDOWN", "KEYUP", "KEYPRESS", "DRAGDROP", "FOCUS", "BLUR", "SELECT", 
         "CHANGE"].forEach(function(ev) {            
-            window.removeEventListener(ev.toLowerCase(), function() {
-                console.log('event:', ev)
-            });
+            window.removeEventListener(ev.toLowerCase(), listner, false);
         });
     }
+
+    function listner(ev) {
+        console.log('event:', ev);
+    };
 
     function keydownSend(e) {
         if (e.keyCode === 13) {
@@ -167,7 +177,9 @@ $(function () {
             myName = input.val();            
             listButton.removeAttr('disabled');
             catchUser.removeAttr('disabled'); 
-            captureButton.removeAttr('disabled');                       
+            captureButton.removeAttr('disabled');
+            removeButton.removeAttr('disabled');
+            status.text('Send message to users:');                         
         } else {
             var msg = {
                 type: 'msg',
@@ -204,6 +216,20 @@ $(function () {
 
         var msg = {
             type: 'catch',
+            data: {
+                name: catchUser.val()
+            }            
+        }
+
+        connection.send(JSON.stringify(msg));
+        catchUser.val('');
+    };
+
+    function sendRemove() {
+        var msg = {};
+
+        var msg = {
+            type: 'uncatch',
             data: {
                 name: catchUser.val()
             }            
