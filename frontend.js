@@ -172,13 +172,14 @@ $(function () {
             var msg = {
                 type: 'msg',
                 data: {
+                    name: myName,
                     text: input.val()
                 }    
             }
         }
         
-        // send the message as an ordinary text
-        connection.send(msg);
+        // send the message as an ordinary text        
+        connection.send(JSON.stringify(msg));
         input.val('');
         // disable the input field to make the user wait until server
         // sends back response
@@ -195,7 +196,7 @@ $(function () {
             }            
         }
 
-        connection.send(msg);
+        connection.send(JSON.stringify(msg));
     };
 
     function sendCapture() {
@@ -208,7 +209,7 @@ $(function () {
             }            
         }
 
-        connection.send(msg);
+        connection.send(JSON.stringify(msg));
         catchUser.val('');
     };
 });

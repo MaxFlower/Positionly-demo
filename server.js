@@ -28,9 +28,9 @@ function htmlEntities(str) {
 }
 
 // Array with some colors
-var colors = [ 'red', 'green', 'blue', 'magenta', 'purple', 'plum', 'orange' ];
+//var colors = [ 'red', 'green', 'blue', 'magenta', 'purple', 'plum', 'orange' ];
 // ... in random order
-colors.sort(function(a,b) { return Math.random() > 0.5; } );
+//colors.sort(function(a,b) { return Math.random() > 0.5; } );
 
 /**
  * HTTP server
@@ -62,8 +62,7 @@ wsServer.on('request', function(request) {
     var connection = request.accept(null, request.origin); 
     // we need to know client index to remove them on 'close' event
     var index = clients.push(connection) - 1;
-    var userName = false;
-    var userColor = false;
+    var userName = false;    
 
     console.log((new Date()) + ' Connection accepted.');
 
@@ -74,48 +73,88 @@ wsServer.on('request', function(request) {
 
     // user sent some message
     connection.on('message', function(message) {
-        if (message.type === 'utf8') { // accept only text
-            if (userName === false) { // first message sent by user is their name
-                // remember user name
-                userName = htmlEntities(message.utf8Data);
-                // get random color and send it back to the user
-                userColor = colors.shift();
-                connection.sendUTF(JSON.stringify({ type:'color', data: userColor }));
-                console.log((new Date()) + ' User is known as: ' + userName
-                            + ' with ' + userColor + ' color.');
+        var type = '';
+        var data = {};
+        var json = JSON.parse(message.utf8Data);
 
-            } else { // log and broadcast the message
-                console.log((new Date()) + ' Received Message from '
-                            + userName + ': ' + message.utf8Data);
-                
-                // we want to keep history of all sent messages
-                var obj = {
-                    time: (new Date()).getTime(),
-                    text: htmlEntities(message.utf8Data),
-                    author: userName,
-                    color: userColor
-                };
-                history.push(obj);
-                history = history.slice(-100);
+        console.log(message.utf8Data);
 
-                // broadcast message to all connected clients
-                var json = JSON.stringify({ type:'message', data: obj });
-                for (var i=0; i < clients.length; i++) {
-                    clients[i].sendUTF(json);
-                }
+        if (message.type === 'utf8') {
+            type = json.type;
+            data = json.data;             
+
+            switch (type) {
+                case 'join':                    
+                    connection.sendUTF(JSON.stringify(
+                        { 
+                            type:'msg', 
+                            data: {
+                                author: 'Server',
+                                text: data.name + ' was joined to Server!',
+                                time: (new Date()).getTime()
+                            }
+                        }
+                    ));                 
+                    break;
+                case 'msg':
+                    //we want to keep history of all sent messages
+                    var textMessage = {
+                        time: (new Date()).getTime(),
+                        text: data.text,
+                        author: data.name                       
+                    };
+                    history.push(textMessage);
+                    history = history.slice(-100);
+
+                    //broadcast message to all connected clients
+                    var str = JSON.stringify({ type:'msg', data: textMessage });
+                    for (var it = 0; it < clients.length; it++) {
+                        clients[it].sendUTF(str);
+                    }
+                    break;
+                case 'list':
+                    connection.sendUTF(JSON.stringify(
+                        {
+                            type:'msg', 
+                            data: {
+                                author: 'Server',
+                                text: clients.toString(),
+                                time: (new Date()).getTime()                                
+                            }    
+                        }
+                    ));
+                    break;
+                case 'catch':
+                    break;
+                default:
+                    console.log((new Date()) + ' Wrong message type.');
+                    break;
             }
         }
+
+
+
+        // if (message.type === 'utf8') { // accept only text
+        //     if (userName === false) { // first message sent by user is their name
+        //         // remember user name
+        //         userName = htmlEntities(message.utf8Data);
+        //         // get random color and send it back to the user
+        //         userColor = colors.shift();
+        //         connection.sendUTF(JSON.stringify({ type:'color', data: userColor }));
+        //         console.log((new Date()) + ' User is known as: ' + userName
+        //                     + ' with ' + userColor + ' color.');
+
+        //     } else { // log and broadcast the message
+        
     });
 
     // user disconnected
     connection.on('close', function(connection) {
-        if (userName !== false && userColor !== false) {
+        if (userName !== false) {
             console.log((new Date()) + " Peer "
                 + connection.remoteAddress + " disconnected.");
             // remove user from the list of connected clients
-            clients.splice(index, 1);
-            // push back user's color to be reused by another user
-            colors.push(userColor);
+            clients.splice(index, 1);            
         }
     });
 
