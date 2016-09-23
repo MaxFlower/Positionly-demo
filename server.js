@@ -86,17 +86,19 @@ wsServer.on('request', function(request) {
             data = json.data;             
 
             switch (type) {
-                case 'join':                    
-                    connection.sendUTF(JSON.stringify(
-                        { 
-                            type:'msg', 
-                            data: {
-                                author: 'Server',
-                                text: data.name + ' was joined to Server!',
-                                time: (new Date()).getTime()
+                case 'join':
+                    for (var it = 0; it < clients.length; it++) {                                                                                                      
+                        clients[it].sendUTF(JSON.stringify(
+                            { 
+                                type:'msg', 
+                                data: {
+                                    author: 'Server',
+                                    text: data.name + ' was joined to Server!',
+                                    time: (new Date()).getTime()
+                                }
                             }
-                        }
-                    ));
+                        ));                                  
+                    }                  
                     clientNames.push(data.name);                 
                     break;
                 case 'msg':
@@ -128,31 +130,27 @@ wsServer.on('request', function(request) {
                     ));
                     break;
                 case 'catch':                    
-                    for (var it = 0; it < clientNames.length; it++) {                        
-                        if (clientNames[it] === data.name) {                                                      
-                            clients[it].sendUTF(JSON.stringify(
-                                {
-                                    type:'spyon',
-                                    data: {
-                                        name: data.name
-                                    }
+                    for (var it = 0; it < clients.length; it++) {                                                                                                      
+                        clients[it].sendUTF(JSON.stringify(
+                            {
+                                type:'spyon',
+                                data: {
+                                    name: data.name
                                 }
-                            ));                            
-                        }                        
+                            }
+                        ));                                     
                     }
                     break;
                 case 'uncatch':                    
-                    for (var it = 0; it < clientNames.length; it++) {                        
-                        if (clientNames[it] === data.name) {                                                      
-                            clients[it].sendUTF(JSON.stringify(
-                                {
-                                    type:'spyoff',
-                                    data: {
-                                        name: data.name
-                                    }
+                    for (var it = 0; it < clients.length; it++) {                                               
+                        clients[it].sendUTF(JSON.stringify(
+                            {
+                                type:'spyoff',
+                                data: {
+                                    name: data.name
                                 }
-                            ));                            
-                        }                        
+                            }
+                        ));                                                                         
                     }
                     break;
                 default:
